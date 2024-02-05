@@ -604,7 +604,6 @@ static bool find_hdr_prefer_mode(struct meson_policy_in *input,
 
 static void get_best_deepcolor(struct meson_policy_in *input,
                                const char *outputmode, char* colorAttribute) {
-    char *pos = NULL;
     int length = 0;
     const char **colorList = NULL;
     char supportedColorList[MESON_MAX_STR_LEN];
@@ -674,7 +673,7 @@ static void get_best_deepcolor(struct meson_policy_in *input,
      * 2. select the preferred color format base resolution
      */
     for (int i = 0; i < length; i++) {
-        if ((pos = strstr(supportedColorList, colorList[i])) != NULL) {
+        if (strstr(supportedColorList, colorList[i]) != NULL) {
             //check resolution+color format support or not base driver edid
             if (mode_support_check(outputmode, colorList[i], input)) {
                 SYS_LOGI("support current mode:[%s], deep color:[%s]\n", outputmode, colorList[i]);
