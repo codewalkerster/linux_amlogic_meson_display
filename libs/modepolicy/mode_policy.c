@@ -22,7 +22,7 @@ static bool test_mode = false;
 
 #define GET_CURRENT_POLICY(connector) \
     struct meson_policy *mp = NULL; \
-    if (connector < 0 || connector >= MESON_MODE_CON_MAX) \
+    if ((connector) < 0 || (connector) >= MESON_MODE_CON_MAX) \
         return -EINVAL; \
     mp = &g_in[connector];
 
