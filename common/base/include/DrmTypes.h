@@ -341,13 +341,25 @@ typedef struct drm_meson_present_fence {
 } drm_meson_present_fence_t;
 
 typedef struct drm_vrr_mode_group {
+        /* brr vic for hdmitx */
         uint32_t brr_vic;
         uint32_t width;
         uint32_t height;
+        /* Unit: 0.01, for example, 2397, 2400, 5994, ... etc */
         uint32_t vrr_min;
         uint32_t vrr_max;
+
+        /* the list will be limited to qms_vrr_min ~ max */
+        /* the TFR contains 13 items, but 2397 and 2400 will be merged to 2400's vic */
+        uint16_t qms_vic_lists[8];
+
+        uint32_t game_vrr_min;
+        uint32_t game_vrr_max;
+
         uint32_t brr;
         char modename[DRM_DISPLAY_MODE_LEN];
+        uint32_t reserv[16];
+
 } drm_meson_vrr_mode_group_t;
 
 typedef struct drm_vrr_mode_groups {
