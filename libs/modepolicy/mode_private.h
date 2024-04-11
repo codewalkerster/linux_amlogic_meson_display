@@ -17,17 +17,20 @@
 /* testing if tv support this displaymode and  deepcolor combination, then if cat result is 1: support, 0: not */
 #define DISPLAY_HDMI_VALID_MODE         "/sys/class/amhdmitx/amhdmitx0/valid_mode"
 
+#define DV_MODE_720P48HZ                "720p48hz"
 #define DV_MODE_720P50HZ                "720p50hz"
 #define DV_MODE_720P                    "720p60hz"
 #define DV_MODE_1080P24HZ               "1080p24hz"
+#define DV_MODE_1080P48HZ               "1080p48hz"
 #define DV_MODE_1080P50HZ               "1080p50hz"
 #define DV_MODE_1080P                   "1080p60hz"
 #define DV_MODE_4K2K24HZ                "2160p24hz"
 #define DV_MODE_4K2K25HZ                "2160p25hz"
 #define DV_MODE_4K2K30HZ                "2160p30hz"
+#define DV_MODE_4K2K48HZ                "2160p48hz"
 #define DV_MODE_4K2K50HZ                "2160p50hz"
 #define DV_MODE_4K2K60HZ                "2160p60hz"
-#define DV_MODE_LIST_SIZE               10
+#define DV_MODE_LIST_SIZE               13
 
 /*for check high frame rate support dv or not*/
 #define DV_VSVDB_PARITY                 "Parity: 1"
@@ -40,6 +43,7 @@
 #define MODE_640x480P                   "640x480p60hz"
 #define MODE_576I                       "576i50hz"
 #define MODE_576P                       "576p50hz"
+#define MODE_720P48HZ                   "720p48hz"
 #define MODE_720P50HZ                   "720p50hz"
 #define MODE_720P                       "720p60hz"
 #define MODE_720P100HZ                  "1280x720p100hz"
@@ -48,6 +52,7 @@
 #define MODE_1080P24HZ                  "1080p24hz"
 #define MODE_1080P25HZ                  "1080p25hz"
 #define MODE_1080P30HZ                  "1080p30hz"
+#define MODE_1080P48HZ                  "1080p48hz"
 #define MODE_1080I50HZ                  "1080i50hz"
 #define MODE_1080P50HZ                  "1080p50hz"
 #define MODE_1080I                      "1080i60hz"
@@ -57,6 +62,7 @@
 #define MODE_4K2K24HZ                   "2160p24hz"
 #define MODE_4K2K25HZ                   "2160p25hz"
 #define MODE_4K2K30HZ                   "2160p30hz"
+#define MODE_4K2K48HZ                   "2160p48hz"
 #define MODE_4K2K50HZ                   "2160p50hz"
 #define MODE_4K2K60HZ                   "2160p60hz"
 #define MODE_4K2K100HZ                  "3840x2160p100hz"
@@ -92,14 +98,17 @@
 #define COLOR_RGB_8BIT                   "rgb,8bit"
 
 static const char* DV_MODE_LIST[DV_MODE_LIST_SIZE] = {
+    DV_MODE_720P48HZ,
     DV_MODE_720P50HZ,
     DV_MODE_720P,
     DV_MODE_1080P24HZ,
+    DV_MODE_1080P48HZ,
     DV_MODE_1080P50HZ,
     DV_MODE_1080P,
     DV_MODE_4K2K24HZ,
     DV_MODE_4K2K25HZ,
     DV_MODE_4K2K30HZ,
+    DV_MODE_4K2K48HZ,
     DV_MODE_4K2K50HZ,
     DV_MODE_4K2K60HZ,
 };
@@ -110,6 +119,7 @@ static const char* DISPLAY_MODE_LIST[] = {
     MODE_480P,
     MODE_576I,
     MODE_576P,
+    MODE_720P48HZ,
     MODE_720P,
     MODE_720P50HZ,
     MODE_720P100HZ,
@@ -117,6 +127,7 @@ static const char* DISPLAY_MODE_LIST[] = {
     MODE_1080P24HZ,
     MODE_1080P25HZ,
     MODE_1080P30HZ,
+    MODE_1080P48HZ,
     MODE_1080I50HZ,
     MODE_1080P50HZ,
     MODE_1080I,
@@ -126,6 +137,7 @@ static const char* DISPLAY_MODE_LIST[] = {
     MODE_4K2K24HZ,
     MODE_4K2K25HZ,
     MODE_4K2K30HZ,
+    MODE_4K2K48HZ,
     MODE_4K2K50HZ,
     MODE_4K2K60HZ,
     MODE_4K2KSMPTE24HZ,
