@@ -273,6 +273,14 @@ static int32_t amdv_update_mode(struct meson_policy_in *input,
     /*
      * 2. find prefer amdolby vision resolution
      */
+
+    /*
+     * if current resolution is not support by new tv, run dv best policy
+     */
+    if (!is_support_HdmiMode(input, cur_outputmode)) {
+        policy = MESON_POLICY_BEST;
+    }
+
     if (policy == MESON_POLICY_BEST || policy == MESON_POLICY_MIX) {
         /* 2.1 best policy enable case */
         if (!strcmp(dv_displaymode, DV_MODE_4K2K60HZ)) {
