@@ -33,6 +33,9 @@ int32_t UvmDetach::getVideoInfo(struct uvm_fd_info & videoInfo) {
 }
 
 int32_t UvmDetach::attachUvmBuffer(int bufferFd) {
+    if (bufferFd < 0)
+        return -1;
+
     if (HwcConfig::UvmDetachEnabled()) {
         return UvmDev::getInstance().attachBuffer(bufferFd);
     } else {
