@@ -160,6 +160,80 @@ static void update_dv_attr(const char *deepcolor, int dolbyvision_type, char * d
     SYS_LOGI("dv_type :%d dv_attr:%s", dv_type, dv_attr);
 }
 
+/*
+ * find the index of mode base the hdmi resolution priority table
+ * TODO: refactor
+ */
+static int32_t find_resolution_index(const char *mode, int flag) {
+    const char* MODE_RESOLUTION[] = {
+        MODE_8K4K60HZ,
+        MODE_8K4K50HZ,
+        MODE_8K4K48HZ,
+        MODE_8K4K30HZ,
+        MODE_8K4K25HZ,
+        MODE_8K4K24HZ,
+        MODE_4K2K120HZ,
+        MODE_4K2K100HZ,
+        MODE_4K2K60HZ,
+        MODE_4K2K50HZ,
+        MODE_4K2K30HZ,
+        MODE_4K2K25HZ,
+        MODE_4K2K24HZ,
+        MODE_1080P,
+        MODE_1080P50HZ,
+        MODE_720P,
+        MODE_720P50HZ,
+        MODE_576P,
+        MODE_480P,
+        MODE_640x480P,
+        MODE_1080I,
+        MODE_1080I50HZ,
+        MODE_576I,
+        MODE_480I,
+    };
+
+    /*
+     * check mode is or not valid mode
+     */
+    int32_t validMode = 0;
+    if (strlen(mode) > 0) {
+        for (int i = 0; i < ARRAY_SIZE(DISPLAY_MODE_LIST); i++) {
+            if (strcmp(mode, DISPLAY_MODE_LIST[i]) == 0) {
+                validMode = 1;
+                break;
+            }
+        }
+    }
+
+    if (!validMode) {
+        SYS_LOGI("the mode [%s] is not valid\n", mode);
+        return -1;
+    }
+
+    /*
+     * frame rate priority than resolution
+     * ex:1080p60hz prefer to 2160p30hz
+     */
+    if (flag == MESON_POLICY_FRAMERATE) {
+        for (int64_t index = 0; index < sizeof(MODE_FRAMERATE_FIRST)/sizeof(char *); index++) {
+            if (strcmp(mode, MODE_FRAMERATE_FIRST[index]) == 0) {
+                return index;
+            }
+        }
+    } else {
+        /*
+         * resolution priority than frame rate
+         * ex:2160p30hz prefer to 1080p60hz
+         */
+        for (int64_t index = 0; index < sizeof(MODE_RESOLUTION)/sizeof(char *); index++) {
+            if (strcmp(mode, MODE_RESOLUTION[index]) == 0) {
+                return index;
+            }
+        }
+    }
+    return -1;
+}
+
 /* TODO: need refactor */
 /* check if the edid support current hdmi mode */
 static bool is_support_HdmiMode(struct meson_policy_in *input, char* mode) {
@@ -182,6 +256,52 @@ static bool is_support_HdmiMode(struct meson_policy_in *input, char* mode) {
 
         return false;
     }
+}
+
+static bool is_dv_support_mode(struct meson_policy_in *input, char *mode) {
+    bool validMode = false;
+
+    /*
+     * check mode support or not
+     */
+    if (is_support_HdmiMode(input, mode)) {
+        SYS_LOGI("%s could not find mode:%s", __func__, mode);
+        return validMode;
+    }
+
+    /*
+     * special resolution not support dv
+     */
+    if ((strstr(mode, "480p") != NULL) ||
+        (strstr(mode, "576p") != NULL) ||
+        (strstr(mode, "smpte") != NULL) ||
+        (strstr(mode, "4096") != NULL) ||
+        (strstr(mode, "i") != NULL)) {
+        SYS_LOGI("%s mode:%s not support dv", __func__, mode);
+        return validMode;
+    }
+
+    /*
+     * need to check the flag of Parity for high frame rate
+     */
+    if (!strcmp(mode, MODE_1080P100HZ)
+        || !strcmp(mode, MODE_1080P120HZ)) {
+        if (strstr(input->hdr_info.dv_cap, DV_VSVDB_PARITY) != NULL) {
+            validMode = true;
+        }
+    } else {
+        /*
+         * resolution larger than dv max resolution not support
+         */
+        if (find_resolution_index(mode, MESON_POLICY_RESOLUTION) <
+            find_resolution_index(input->hdr_info.dv_max_mode, MESON_POLICY_RESOLUTION)) {
+            validMode = false;
+        } else {
+            validMode = true;
+        }
+    }
+
+    return validMode;
 }
 
 static int32_t amdv_update_mode(struct meson_policy_in *input,
@@ -213,7 +333,7 @@ static int32_t amdv_update_mode(struct meson_policy_in *input,
         policy = MESON_POLICY_BEST;
     }
 
-    if (policy == MESON_POLICY_BEST || policy == MESON_POLICY_MIX) {
+    if (policy == MESON_POLICY_BEST || policy == MESON_POLICY_FRAMERATE || policy == MESON_POLICY_MIX) {
         /* 2.1 best policy enable case */
         if (!strcmp(dv_displaymode, DV_MODE_4K2K60HZ)) {
             /* TV support amdolby vision 2160p60hz case */
@@ -249,11 +369,11 @@ static int32_t amdv_update_mode(struct meson_policy_in *input,
          * hdmi output resolution need small than amdolby vision resolution
          * x:amdolby vision support 1080p60hz,only can output small 1080p60hz resolution
          */
-        if (!meson_mode_support_mode(MESON_MODE_HDMI, MESON_DOLBY_VISION_PRIORITY, cur_outputmode)) {
-            strcpy(final_displaymode, cur_outputmode);
-        } else {
+        if (!is_dv_support_mode(input, cur_outputmode)) {
             ret = -1;
             SYS_LOGI("cur_outputmode:%s doesn't support dv", cur_outputmode);
+        } else {
+            strcpy(final_displaymode, cur_outputmode);
         }
     }
 
@@ -578,7 +698,6 @@ static bool hdr_scene_process(struct meson_policy_in *input,
 
     if ((input->state == MESON_SCENE_STATE_INIT) ||
         (input->state == MESON_SCENE_STATE_POWER)) {
-
         /*
          * if current resolution is not support by new tv, run dv best policy
          * ex:change to 2160p60hz and plug to FHD TV
@@ -630,7 +749,7 @@ static bool hdr_scene_process(struct meson_policy_in *input,
         } else if (policy == MESON_POLICY_BEST || policy == MESON_POLICY_MIX || policy == MESON_POLICY_RESOLUTION || policy == MESON_POLICY_FRAMERATE) {
             const char **resolutionList = NULL;
             int resolutionList_length   = 0;
-            if (policy == MESON_POLICY_BEST) {
+            if (policy == MESON_POLICY_BEST || policy == MESON_POLICY_FRAMERATE) {
                 resolutionList        = MODE_FRAMERATE_FIRST;
                 resolutionList_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST);
             } else {
@@ -714,7 +833,7 @@ static bool hdr_scene_process(struct meson_policy_in *input,
         }
 
         //not find support mode and colorspace and try best policy
-        if (!find && !(policy == MESON_POLICY_BEST && input->con_info.is_bestcolorspace)) {
+        if (!find && !((policy == MESON_POLICY_BEST || policy == MESON_POLICY_FRAMERATE) && input->con_info.is_bestcolorspace)) {
             //best policy case
             find = find_hdr_prefer_mode(input, output_info);
         }
@@ -754,44 +873,37 @@ static void get_highest_mode_by_policy(struct meson_policy_in *input,
     meson_mode_info_t *modes_ptr = input->con_info.modes;
     meson_mode_info_t *config_ptr = NULL;
 
-    for (int i = 0; i < input->con_info.modes_size; i ++) {
-        meson_mode_info_t *it = &modes_ptr[i];
+    //choose base table
+    const char **resolutionList = NULL;
+    int resolutionList_length   = 0;
+    if (policy == MESON_POLICY_BEST || policy == MESON_POLICY_FRAMERATE) {
+        resolutionList        = MODE_FRAMERATE_FIRST;
+        resolutionList_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST);
+    } else {
+        resolutionList        = MODE_RESOLUTION_FIRST;
+        resolutionList_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST);
+    }
 
-        /* not select smpte and interlace mode */
-        if ((strstr(it->name, "smpte") != NULL) || (strstr(it->name, "i") != NULL))
-            continue;
-
-        if (!config_ptr) {
-            config_ptr = it;
-            continue;
+    //find preferred mode
+    for (int j = resolutionList_length - 1; j >= 0 ; j--) {
+        for (int i = 0; i < input->con_info.modes_size; i ++) {
+            meson_mode_info_t *it = &modes_ptr[i];
+            if (!strcmp(it->name, resolutionList[j])) {
+                SYS_LOGI("%s preferred mode:[%s]\n", __FUNCTION__, resolutionList[j]);
+                config_ptr = it;
+                break;
+            }
         }
 
-        if (policy == MESON_POLICY_BEST || policy == MESON_POLICY_FRAMERATE)  {
-            /*
-             * frame rate policy: choose the mode which has the highest refresh rate
-             * If the refresh rate is same, then find the hightest resolution
-             */
-            if (config_ptr->refresh_rate < it->refresh_rate) {
-                config_ptr = it;
-            } else if (config_ptr->refresh_rate == it->refresh_rate) {
-                if (config_ptr->pixel_w < it->pixel_w && config_ptr->pixel_h < it->pixel_h)
-                    config_ptr = it;
-            }
-        } else if (policy == MESON_POLICY_RESOLUTION || policy == MESON_POLICY_MIX) {
-            if (config_ptr->pixel_h < it->pixel_h) {
-                config_ptr = it;
-            } else if (config_ptr->pixel_h == it->pixel_h) {
-                if (config_ptr->pixel_w < it->pixel_w) {
-                    config_ptr = it;
-                } else if (config_ptr->refresh_rate < it->refresh_rate) {
-                    config_ptr = it;
-                }
-            }
+        if (config_ptr) {
+            break;
         }
     }
 
     if (config_ptr) {
         strcpy(mode, config_ptr->name);
+    } else {
+        SYS_LOGI("%s not find preferred mode\n", __FUNCTION__);
     }
 }
 

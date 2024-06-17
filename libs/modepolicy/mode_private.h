@@ -166,12 +166,19 @@ static const char* MODE_RESOLUTION_FIRST[] = {
     MODE_4K2K30HZ,
     MODE_4K2K50HZ,
     MODE_4K2K60HZ,
+    /*
+     * for hdmi compatibility not choose 8k as preferred mode
+     */
+    /*
+    MODE_4K2K100HZ,
+    MODE_4K2K120HZ,
     MODE_8K4K24HZ,
     MODE_8K4K25HZ,
     MODE_8K4K30HZ,
     MODE_8K4K48HZ,
     MODE_8K4K50HZ,
     MODE_8K4K60HZ,
+    */
 };
 
 static const char* MODE_FRAMERATE_FIRST[] = {
@@ -179,6 +186,7 @@ static const char* MODE_FRAMERATE_FIRST[] = {
     MODE_576I,
     MODE_1080I50HZ,
     MODE_1080I,
+    MODE_640x480P,
     MODE_480P,
     MODE_576P,
     MODE_720P50HZ,
@@ -190,8 +198,19 @@ static const char* MODE_FRAMERATE_FIRST[] = {
     MODE_1080P,
     MODE_4K2K50HZ,
     MODE_4K2K60HZ,
+    /*
+     * for hdmi compatibility not choose 8k as preferred mode
+     */
+    /*
+    MODE_4K2K100HZ,
+    MODE_4K2K120HZ,
+    MODE_8K4K24HZ,
+    MODE_8K4K25HZ,
+    MODE_8K4K30HZ,
+    MODE_8K4K48HZ,
     MODE_8K4K50HZ,
     MODE_8K4K60HZ,
+    */
 };
 
 //for check hdr 4k support or not
