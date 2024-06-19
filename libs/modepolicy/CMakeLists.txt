@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (meson_mode_policy)
 
-SET(SRC_LIST mode_policy.c mode_ubootenv.c mode_util.c)
+SET(SRC_LIST mode_policy.c mode_util.c)
 
 ADD_DEFINITIONS(-DLINUX_COMPILE)
 
