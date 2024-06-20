@@ -646,6 +646,15 @@ static bool hdr_scene_process(struct meson_policy_in *input,
 
     if ((input->state == MESON_SCENE_STATE_INIT) ||
         (input->state == MESON_SCENE_STATE_POWER)) {
+
+        /*
+         * if current resolution is not support by new tv, run dv best policy
+         * ex:change to 2160p60hz and plug to FHD TV
+         */
+        if (!is_support_HdmiMode(input, input->cur_displaymode)) {
+            policy = MESON_POLICY_BEST;
+        }
+
         if (policy == MESON_POLICY_BEST && input->con_info.is_bestcolorspace) {
             /*
              * best policy enable case
