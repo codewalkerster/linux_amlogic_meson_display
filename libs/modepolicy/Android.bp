@@ -46,6 +46,7 @@ cc_library_shared {
 
     srcs: [
         "mode_policy.c",
+        "mode_policy_parser.c",
         "mode_ubootenv.c",
     ],
 

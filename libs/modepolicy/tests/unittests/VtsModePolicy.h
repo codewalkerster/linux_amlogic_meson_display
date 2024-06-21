@@ -18,24 +18,6 @@
 #include "mode_policy.h"
 #include "mode_ubootenv.h"
 
-#define DOLBY_VISION_LL_RGB             3
-#define DOLBY_VISION_LL_YUV             2
-#define DOLBY_VISION_STD_ENABLE         1
-#define DOLBY_VISION_DISABLE            0
-
-#define COLOR_YCBCR444_12BIT             "444,12bit"
-#define COLOR_YCBCR444_10BIT             "444,10bit"
-#define COLOR_YCBCR444_8BIT              "444,8bit"
-#define COLOR_YCBCR422_12BIT             "422,12bit"
-#define COLOR_YCBCR422_10BIT             "422,10bit"
-#define COLOR_YCBCR422_8BIT              "422,8bit"
-#define COLOR_YCBCR420_12BIT             "420,12bit"
-#define COLOR_YCBCR420_10BIT             "420,10bit"
-#define COLOR_YCBCR420_8BIT              "420,8bit"
-#define COLOR_RGB_12BIT                  "rgb,12bit"
-#define COLOR_RGB_10BIT                  "rgb,10bit"
-#define COLOR_RGB_8BIT                   "rgb,8bit"
-
 
 enum {
     DISPLAY_TYPE_NONE                   = 0,

@@ -15,6 +15,19 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
+
+/*
+ * Macro define
+ */
+#define MESON_MODE_LEN        64
+#define MESON_DV_MODE_LEN     265
+#define MESON_MAX_STR_LEN     4096
+
+#define DEBUG
+
+#ifdef DEBUG
+
+#ifndef __UBOOT__
 #include <string.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -22,22 +35,18 @@
 #include <poll.h>
 #include <time.h>
 
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define MAX_BUF_LEN 4096
-#define MESON_MODE_LEN 64
-
-#define DEBUG
-
-#ifdef DEBUG
-#define COLOR_F (getpid()%6)+1
-#define COLOR_B 8
-
-#ifndef UBOOT
-
 #ifndef LINUX_COMPILE
+/*
+ * Android
+ */
 #include <log/log.h>
 
 #ifndef LOG_TAG
@@ -45,11 +54,10 @@ extern "C" {
 #endif
 
 #define SYS_LOGV(fmt,...)     ALOGV(fmt, ##__VA_ARGS__)
-#define SYS_LOGD(fmt,...)		ALOGD(fmt, ##__VA_ARGS__)
-//#define SYS_LOGI(fmt,...)		ALOGI(fmt, ##__VA_ARGS__)
-#define SYS_LOGI(fmt,...)		ALOGI("[%s, %s, %d] " fmt, strrchr(__FILE__, '/'), __FUNCTION__, __LINE__, ##__VA_ARGS__)
-#define SYS_LOGW(fmt,...)		ALOGW(fmt, ##__VA_ARGS__)
-#define SYS_LOGE(fmt,...)		ALOGE(fmt, ##__VA_ARGS__)
+#define SYS_LOGD(fmt,...)     ALOGD(fmt, ##__VA_ARGS__)
+#define SYS_LOGI(fmt,...)     ALOGI("[%s, %s, %d] " fmt, strrchr(__FILE__, '/'), __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define SYS_LOGW(fmt,...)     ALOGW(fmt, ##__VA_ARGS__)
+#define SYS_LOGE(fmt,...)     ALOGE(fmt, ##__VA_ARGS__)
 #define SYS_ASSERT(condition,fmt,...) \
         if (!(condition)) { \
             ALOGE(fmt, ##__VA_ARGS__); \
@@ -57,17 +65,19 @@ extern "C" {
         }
 
 #else
+/*
+ * Linux
+ */
 
 #ifndef LOG_TAG
 #define LOG_TAG "Westeros"
 #endif
 
-#define SYS_LOGV(fmt,...)     fprintf(stderr, fmt "\n", ##__VA_ARGS__)
-#define SYS_LOGD(fmt,...)		fprintf(stderr, fmt "\n", ##__VA_ARGS__)
-//#define SYS_LOGI(fmt,...)		fprintf(stderr, fmt, ##__VA_ARGS__)
-#define SYS_LOGI(fmt,...)		fprintf(stderr, "[%s, %s, %d] " fmt "\n", strrchr(__FILE__, '/'), __FUNCTION__, __LINE__, ##__VA_ARGS__)
-#define SYS_LOGW(fmt,...)		fprintf(stderr, fmt "\n", ##__VA_ARGS__)
-#define SYS_LOGE(fmt,...)		fprintf(stderr, fmt "\n", ##__VA_ARGS__)
+#define SYS_LOGV(fmt,...)       fprintf(stderr, fmt "\n", ##__VA_ARGS__)
+#define SYS_LOGD(fmt,...)       fprintf(stderr, fmt "\n", ##__VA_ARGS__)
+#define SYS_LOGI(fmt,...)       fprintf(stderr, "[%s, %s, %d] " fmt "\n", strrchr(__FILE__, '/'), __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define SYS_LOGW(fmt,...)       fprintf(stderr, fmt "\n", ##__VA_ARGS__)
+#define SYS_LOGE(fmt,...)       fprintf(stderr, fmt "\n", ##__VA_ARGS__)
 #define SYS_ASSERT(condition,fmt,...) \
         if (!(condition)) { \
             fprintf(stderr, fmt, ##__VA_ARGS__); \
@@ -81,18 +91,6 @@ extern "C" {
 #include <linux/amlogic/drm/meson_drm.h>
 #endif
 
-#else
-#define SYS_LOGD(fmt, arg...) do { fprintf(stderr, "[meson_display: Debug:PID[%5d]:%8ld]\033[3%d;4%dm " fmt "\033[0m [in %s:%d]\n",getpid(), time(NULL), COLOR_F, COLOR_B, ##arg, __func__, __LINE__);}while(0)
-#endif  //UBOOT
-
-#else
-#define SYS_LOGV(fmt,...)		((void)0)
-#define SYS_LOGD(fmt,...)		((void)0)
-#define SYS_LOGI(fmt,...)		((void)0)
-#define SYS_LOGW(fmt,...)		((void)0)
-
-#endif //DEBUG
-
 int32_t meson_mode_write_sys(const char *path, const char *val);
 int32_t meson_mode_read_sys(const char *path, char *val, bool original, int valSize);
 bool meson_write_valid_mode_sys(const char *path, const char *outputmode);
@@ -100,5 +98,34 @@ bool meson_write_valid_mode_sys(const char *path, const char *outputmode);
 #ifdef __cplusplus
 }
 #endif
+
+#else
+/*
+ * Uboot
+ */
+#ifdef CONFIG_AML_HDMITX20
+#include <amlogic/media/vout/hdmitx/hdmitx.h>
+#else
+#include <amlogic/media/vout/hdmitx21/hdmitx.h>
+#endif
+#include <linux/kernel.h>
+
+#define SYS_LOGV(fmt,...)       printf(fmt, ##__VA_ARGS__)
+#define SYS_LOGD(fmt,...)       printf(fmt, ##__VA_ARGS__)
+#define SYS_LOGI(fmt,...)       printf("[%s, %s, %d] " fmt, strrchr(__FILE__, '/'), __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define SYS_LOGW(fmt,...)       printf(fmt, ##__VA_ARGS__)
+#define SYS_LOGE(fmt,...)       printf(fmt, ##__VA_ARGS__)
+
+#define __unused __always_unused
+
+#endif
+
+#else
+#define SYS_LOGV(fmt,...)       ((void)0)
+#define SYS_LOGD(fmt,...)       ((void)0)
+#define SYS_LOGI(fmt,...)       ((void)0)
+#define SYS_LOGW(fmt,...)       ((void)0)
+
+#endif //DEBUG
 
 #endif // MESON_MODE_POLICY_UTIL_H

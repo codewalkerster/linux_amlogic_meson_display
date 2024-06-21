@@ -314,7 +314,7 @@ TEST_F(ModePolicyTest, 4K60HZ_DV)
     struct meson_policy_out out;
     mModePolicy->getModePolicyOut(out);
     EXPECT_TRUE(!strcmp(out.displaymode, "2160p60hz"));
-    EXPECT_EQ(out.dv_type, DOLBY_VISION_LL_YUV);
+    EXPECT_EQ(out.amdv_type, DOLBY_VISION_LL_YUV);
     EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR422_12BIT));
 
     // case 2: max support to 1080p50hz
@@ -334,7 +334,7 @@ TEST_F(ModePolicyTest, 4K60HZ_DV)
     ALOGD("line:%d outmode:%s outcolor:%s", __LINE__, out.displaymode, out.deepcolor);
 //#endif
     EXPECT_TRUE(!strcmp(out.displaymode, "1080p60hz"));
-    EXPECT_EQ(out.dv_type, DOLBY_VISION_LL_RGB);
+    EXPECT_EQ(out.amdv_type, DOLBY_VISION_LL_RGB);
     EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR444_12BIT));
 
     // case 4: color deep STD
@@ -348,7 +348,7 @@ TEST_F(ModePolicyTest, 4K60HZ_DV)
     ALOGD("line:%d outmode:%s outcolor:%s", __LINE__, out.displaymode, out.deepcolor);
 //#endif
     EXPECT_TRUE(!strcmp(out.displaymode, "2160p60hz"));
-    EXPECT_EQ(out.dv_type, DOLBY_VISION_STD_ENABLE);
+    EXPECT_EQ(out.amdv_type, DOLBY_VISION_STD_ENABLE);
     EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR444_8BIT));
 
     // case5: resolution policy

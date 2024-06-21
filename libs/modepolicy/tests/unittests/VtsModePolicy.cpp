@@ -206,7 +206,7 @@ void VtsModePolicy::dump() {
         "---------------\n");
     ALOGD("out mode:%s\n", mOut.displaymode);
     ALOGD("out color:%s\n", mOut.deepcolor);
-    ALOGD("out dv type:%d\n\n", mOut.dv_type);
+    ALOGD("out dv type:%d\n\n", mOut.amdv_type);
 }
 
 meson_sink_type_e VtsModePolicy::parseSinkType(const std::string & value) {

@@ -27,7 +27,7 @@ int32_t meson_mode_write_sys(const char *path, const char *val) {
 }
 
 int32_t meson_mode_read_sys(const char *path, char *val, bool original, int valSize) {
-    char buf[MAX_BUF_LEN] = {0};
+    char buf[MESON_MAX_STR_LEN] = {0};
 
     int fd, len;
     if ((fd = open(path, O_RDONLY)) < 0) {
@@ -35,7 +35,7 @@ int32_t meson_mode_read_sys(const char *path, char *val, bool original, int valS
         return -errno;
     }
 
-    len = read(fd, buf, MAX_BUF_LEN-1);
+    len = read(fd, buf, MESON_MAX_STR_LEN-1);
     close(fd);
     if (len < 0) {
         SYS_LOGE("read error: %s, %s\n", path, strerror(errno));

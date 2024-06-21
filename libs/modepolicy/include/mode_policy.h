@@ -7,38 +7,23 @@
  * Description:
  */
 #include "mode_util.h"
+#ifndef __UBOOT__
+#include "mode_private.h"
+#endif
 
 #ifndef MESON_DISPLAY_MODE_POLICY_H
 #define MESON_DISPLAY_MODE_POLICY_H
-
-#define MESON_DV_MODE_LEN                   265
-
-/* default value */
-#define MESON_DEFAULT_COLOR_FORMAT_4K       "420,8bit"
-#define MESON_DEFAULT_COLOR_FORMAT          "rgb,8bit"
-#define MESON_DEFAULT_HDMI_MODE             "720p60hz"
-#define MESON_MAX_STR_LEN                   4096
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define DOLBY_VISION_LL_RGB             3
-#define DOLBY_VISION_LL_YUV             2
-#define DOLBY_VISION_STD_ENABLE         1
-#define DOLBY_VISION_DISABLE            0
-
 typedef enum meson_mode_policy {
-    MESON_POLICY_BEST = 0,
-    MESON_POLICY_RESOLUTION = 1,
-    MESON_POLICY_FRAMERATE = 2,
+    MESON_POLICY_BEST       = 0,           /* mode auto to best policy is enable */
+    MESON_POLICY_RESOLUTION = 1,           /* mode preferred resolution for hdr and sdr when auto to best policy is enable */
+    MESON_POLICY_FRAMERATE  = 2,           /* mode preferred frame rate for hdr and sdr when auto to best policy is enable */
     MESON_POLICY_DV = 3,
-    MESON_POLICY_MIX = 4,
-    MESON_POLICY_INVALID = 8,
+    MESON_POLICY_INVALID    = 8,           /* mode auto to best policy is disable */
 } meson_mode_policy_e;
 
 typedef enum meson_mode_state {
@@ -91,38 +76,11 @@ typedef enum meson_hdr_policy {
     MESON_HDR_POLICY_FORCE  = 4,
 } meson_hdr_policy_e;
 
-/*
- * save user hdr policy
- * "0":follow sink
- * "1":follow source
- * "2""3":hdr vivid
- * "4":force
- */
-static const char* MESON_HDR_POLICY[] = {
-    "0",
-    "1",
-    "2",
-    "3",
-    "4"
-};
-
 typedef enum meson_hdr_preferred_policy {
     MESON_HDR_SYSTEM_PREFERRED = 0,
     MESON_HDR_MATCH_CONTENT    = 1,
     MESON_HDR_FORCE            = 2,
 } meson_hdr_preferred_policy_e;
-
-/*
- * save user preferred hdr policy
- * "0":System-preferred conversion
- * "1":Match content Dynamic range
- * "2":Force conversion
- */
-static const char* MESON_HDR_PREFERRED_POLICY[] = {
-    "0",
-    "1",
-    "2"
-};
 
 typedef enum meson_hdr_force_mode {
     MESON_HDR_FORCE_MODE_INVALID    = 0,
@@ -132,23 +90,6 @@ typedef enum meson_hdr_force_mode {
     MESON_HDR_FORCE_MODE_HDR10PLUS  = 4,  //need to do
     MESON_HDR_FORCE_MODE_HLG        = 5,
 } meson_hdr_force_mode_e;
-
-/* foce mode type in uboot env
- * 0: invalid type
- * 1: force sdr
- * 2: force dv
- * 3: force hdr10
- * 4: force hdr10plus (need to do)
- * 5: force hlg
- * */
-static const char* MESON_FORCE_MODE_TYPE[] = {
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5"
-};
 
 typedef enum meson_connector_type {
     MESON_MODE_HDMI = 0,
@@ -179,6 +120,15 @@ typedef struct meson_hdr_info {
     meson_hdr_priority_e hdr_priority;      /* dynamic range fromat preference,0:dolby vision,1:hdr,2:sdr */
     meson_hdr_policy_e hdr_policy;          /* dynamic range policy,0 :follow sink, 1: match content, 2:hdr force mode */
     meson_hdr_force_mode_e hdr_force_mode;  /* hdr force mode,1 :force sdr, 2: force dv, 3: force hdr10, 5:force hlg*/
+    /*
+     *below members used by uboot
+     */
+    bool support_DV_RGB_444_8BIT;
+    bool support_LL_YCbCr_422_12BIT;
+    bool support_LL_RGB_444_10BIT;
+    bool support_LL_RGB_444_12BIT;
+    bool sup_2160p60hz;                     /* if as 0, then support 2160p30hz */
+    char amdv_parity;
 } meson_hdr_info_t;
 
 typedef struct meson_connector_info {
@@ -186,6 +136,7 @@ typedef struct meson_connector_info {
     bool is_support4k;                      /* soc support 4k or not */
     bool is_support4k30HZ;                  /* soc max support 4k30hz or not */
     bool is_deepcolor;                      /* deepcolor feature enable or not */
+    bool isframeratepriority;               /* frame priority feature enable or not, false:disable true:enable */
     enum meson_sink_type sink_type;         /* 0: not hdmi sink; 1: hdmi sink; 2: repeater sink; */
     char edid_parsing[MESON_MODE_LEN];      /* edid parse ok or not, ok:parse ok,ng:parse ng */
     char dc_cap[MESON_MAX_STR_LEN];         /* device colorspace cap */
@@ -210,9 +161,65 @@ typedef struct meson_policy_in {
 typedef struct meson_policy_out {
     char displaymode[MESON_MODE_LEN];
     char deepcolor[MESON_MODE_LEN];
-    int32_t dv_type;
+    int32_t amdv_type;
 } meson_policy_out_t;
 
+struct meson_policy {
+    struct meson_policy_in input;
+    struct meson_policy_out output;
+    enum meson_mode_policy policy;
+};
+
+#ifndef __UBOOT__
+
+/*
+ * below data struct is uesd only by hwc and linux
+ */
+
+/*
+ * save user preferred hdr policy
+ * "0":System-preferred conversion
+ * "1":Match content Dynamic range
+ * "2":Force conversion
+ */
+static const char* MESON_HDR_PREFERRED_POLICY[] = {
+    "0",
+    "1",
+    "2"
+};
+
+/*
+ * save user hdr policy
+ * "0":follow sink
+ * "1":follow source
+ * "2""3":hdr vivid
+ * "4":force
+ */
+static const char* MESON_HDR_POLICY[] = {
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+};
+
+/* force mode type in uboot env
+ * 0: invalid type
+ * 1: force sdr
+ * 2: force dv
+ * 3: force hdr10
+ * 4: force hdr10plus (need to do)
+ * 5: force hlg
+ * */
+static const char* MESON_FORCE_MODE_TYPE[] = {
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+};
+#endif
 /*
  * Set the mode policy
  */
@@ -228,15 +235,15 @@ int32_t meson_mode_set_policy_input(int32_t connector, const struct meson_policy
  */
 int32_t meson_mode_get_policy_output(int32_t connector, struct meson_policy_out *out);
 
+#ifndef __UBOOT__
+/*
+ * below api is uesd only by hwc and linux
+ */
+
 /*
  * get current mode support color
  */
 int32_t meson_mode_get_support_color(int32_t connector, const char *mode, char* color);
-
-/*
- * for uinit test mode
- */
-void meson_mode_set_test_mode(const bool enable);
 
 /*
  * check mode support or not under type
@@ -256,6 +263,13 @@ const char *meson_hdrPriorityToString(int32_t type);
 const char *meson_hdrPolicyToString(int32_t type);
 
 const char *meson_modePolicyToString(int32_t type);
+
+/*
+ * for uinit test mode
+ */
+void meson_mode_set_test_mode(const bool enable);
+
+#endif
 
 #ifdef __cplusplus
 }
