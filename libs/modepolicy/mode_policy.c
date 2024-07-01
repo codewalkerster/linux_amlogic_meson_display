@@ -264,7 +264,7 @@ static bool is_dv_support_mode(struct meson_policy_in *input, char *mode) {
     /*
      * check mode support or not
      */
-    if (is_support_HdmiMode(input, mode)) {
+    if (!is_support_HdmiMode(input, mode)) {
         SYS_LOGI("%s could not find mode:%s", __func__, mode);
         return validMode;
     }
