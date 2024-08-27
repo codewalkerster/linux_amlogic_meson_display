@@ -93,6 +93,13 @@ extern "C" {
  */
 #define UBOOTENV_FRAMERATE_PRIORITY      "ubootenv.var.framerate_priority"
 
+/*
+ * config hdr policy
+ * "true":hdr priority
+ * "false":resolution priority
+ */
+#define UBOOTENV_HDR_RESOLUTION_PRIORITY "ubootenv.var.hdr_resolution_priority"
+
 int meson_mode_init_ubootenv();
 
 const char *meson_mode_get_ubootenv(const char * key);
