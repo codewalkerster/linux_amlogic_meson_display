@@ -374,13 +374,65 @@ bool is_hdmi_dc_cap_ok(struct meson_policy_in *input) {
  * compilation pass, and then make modifications when it is used later.
  */
 bool find_brr_mode(const char *mode, struct meson_policy_in *input, char* outputmode) {
-    if (!mode || !input || !outputmode) {
-        SYS_LOGE("%s input or mode or outputmode is null\n", __FUNCTION__);
-        return false;
-    }
+   struct hdmitx_dev *hdev = get_hdmitx21_device();
+	bool rx_qms_cap = 0;
+	bool env_qms_en = 0;
+	bool progressive_mode = 1;
+	const char *i_modes[3] = {
+		"480i", "576i", "1080i",
+	};
+	const struct hdmi_timing *tfr_timing = NULL;
+	const struct hdmi_timing *brr_timing = NULL;
+	const char *brr_mode = NULL;
+	int i;
+	enum hdmi_vic qms_brr_vic = HDMI_UNKNOWN;
+	const struct hdmi_timing *hdmitx21_gettiming_from_name(const char *name);
 
-    strcpy(outputmode, mode);
-    return true;
+	if (!mode || !input || !outputmode) {
+		SYS_LOGE("%s input or mode or outputmode is null\n", __FUNCTION__);
+		return false;
+	}
+/* QMS is not applied for hdmi20 devices */
+#ifdef CONFIG_AML_HDMITX20
+	strcpy(outputmode, mode);
+	return false;
+#endif
+
+	rx_qms_cap = hdev->RXCap.qms;
+	if (env_get("qms_en") && (env_get_ulong("qms_en", 10, 0) == 1))
+		env_qms_en = 1;
+
+	/* if current mode is interlaced mode, then skip QMS */
+	for (i = 0; i < 3; i++) {
+		if (strstr(mode, i_modes[i])) {
+			progressive_mode = 0;
+			break;
+		}
+	}
+
+	if (!(env_qms_en && progressive_mode && rx_qms_cap)) {
+		strcpy(outputmode, mode);
+		SYS_LOGE("hdmitx: qms: env %d mode %d rx_qms %d\n", env_qms_en, progressive_mode, rx_qms_cap);
+		return false;
+	}
+	tfr_timing = hdmitx21_gettiming_from_name(mode);
+	if (!tfr_timing) {
+		strcpy(outputmode, mode);
+		SYS_LOGE("hdmitx: qms: not find timing of %s\n", mode);
+		return false;
+	}
+	qms_brr_vic = hdmitx_find_brr_vic(tfr_timing->vic);
+	brr_timing = hdmitx21_gettiming_from_vic(qms_brr_vic);
+	brr_mode = brr_timing->sname ? brr_timing->sname : brr_timing->name;
+	if (brr_timing->v_freq < tfr_timing->v_freq) {
+		strcpy(outputmode, mode);
+		SYS_LOGE("hdmitx: qms: tfr %s larger than brr %s\n",
+			tfr_timing->sname ? tfr_timing->sname : tfr_timing->name, brr_mode);
+		return false;
+	}
+	SYS_LOGE("hdmitx: qms: the brr mode of %s is %s\n", mode, brr_mode);
+	strcpy(outputmode, brr_mode);
+	return true;
 }
 
 /*
@@ -392,6 +444,7 @@ struct hdmi_format_para *para = NULL;
     struct hdmitx_dev *hdev = hdmitx_get_hdev();
 #else
     struct hdmitx_dev *hdev = get_hdmitx21_device();
+    char brr_mode[32] = {0};
 #endif
 
     if (!mode || !color || !input)
@@ -401,6 +454,8 @@ struct hdmi_format_para *para = NULL;
     para = hdmi_tst_fmt_name(mode, color);
     return hdmitx_edid_check_valid_mode(hdev, para);
 #else
+    if (find_brr_mode(mode, input, brr_mode))
+        mode = &brr_mode[0];
     para = hdmitx21_tst_fmt_name(mode, color);
     return hdmitx21_validate_mode(hdev, para);
 #endif
