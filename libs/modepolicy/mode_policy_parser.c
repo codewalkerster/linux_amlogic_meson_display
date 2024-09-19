@@ -374,7 +374,8 @@ bool is_hdmi_dc_cap_ok(struct meson_policy_in *input) {
  * compilation pass, and then make modifications when it is used later.
  */
 bool find_brr_mode(const char *mode, struct meson_policy_in *input, char* outputmode) {
-   struct hdmitx_dev *hdev = get_hdmitx21_device();
+#ifdef CONFIG_AML_HDMITX21
+	struct hdmitx_dev *hdev = get_hdmitx21_device();
 	bool rx_qms_cap = 0;
 	bool env_qms_en = 0;
 	bool progressive_mode = 1;
@@ -387,9 +388,10 @@ bool find_brr_mode(const char *mode, struct meson_policy_in *input, char* output
 	int i;
 	enum hdmi_vic qms_brr_vic = HDMI_UNKNOWN;
 	const struct hdmi_timing *hdmitx21_gettiming_from_name(const char *name);
+#endif
 
 	if (!mode || !input || !outputmode) {
-		SYS_LOGE("%s input or mode or outputmode is null\n", __FUNCTION__);
+		SYS_LOGE("%s input or mode or outputmode is null\n", __func__);
 		return false;
 	}
 /* QMS is not applied for hdmi20 devices */
@@ -397,7 +399,7 @@ bool find_brr_mode(const char *mode, struct meson_policy_in *input, char* output
 	strcpy(outputmode, mode);
 	return false;
 #endif
-
+#ifdef CONFIG_AML_HDMITX21
 	rx_qms_cap = hdev->RXCap.qms;
 	if (env_get("qms_en") && (env_get_ulong("qms_en", 10, 0) == 1))
 		env_qms_en = 1;
@@ -412,7 +414,8 @@ bool find_brr_mode(const char *mode, struct meson_policy_in *input, char* output
 
 	if (!(env_qms_en && progressive_mode && rx_qms_cap)) {
 		strcpy(outputmode, mode);
-		SYS_LOGE("hdmitx: qms: env %d mode %d rx_qms %d\n", env_qms_en, progressive_mode, rx_qms_cap);
+		SYS_LOGE("hdmitx: qms: env %d mode %d rx_qms %d\n",
+			env_qms_en, progressive_mode, rx_qms_cap);
 		return false;
 	}
 	tfr_timing = hdmitx21_gettiming_from_name(mode);
@@ -433,6 +436,8 @@ bool find_brr_mode(const char *mode, struct meson_policy_in *input, char* output
 	SYS_LOGE("hdmitx: qms: the brr mode of %s is %s\n", mode, brr_mode);
 	strcpy(outputmode, brr_mode);
 	return true;
+#endif
+	return false;
 }
 
 /*
@@ -441,23 +446,23 @@ bool find_brr_mode(const char *mode, struct meson_policy_in *input, char* output
 bool mode_support_check(const char *mode, const char * color, struct meson_policy_in *input) {
 struct hdmi_format_para *para = NULL;
 #ifdef CONFIG_AML_HDMITX20
-    struct hdmitx_dev *hdev = hdmitx_get_hdev();
+	struct hdmitx_dev *hdev = hdmitx_get_hdev();
 #else
-    struct hdmitx_dev *hdev = get_hdmitx21_device();
-    char brr_mode[32] = {0};
+	struct hdmitx_dev *hdev = get_hdmitx21_device();
+	char brr_mode[32] = {0};
 #endif
 
-    if (!mode || !color || !input)
-        return false;
+	if (!mode || !color || !input)
+		return false;
 
 #ifdef CONFIG_AML_HDMITX20
-    para = hdmi_tst_fmt_name(mode, color);
-    return hdmitx_edid_check_valid_mode(hdev, para);
+	para = hdmi_tst_fmt_name(mode, color);
+	return hdmitx_edid_check_valid_mode(hdev, para);
 #else
-    if (find_brr_mode(mode, input, brr_mode))
-        mode = &brr_mode[0];
-    para = hdmitx21_tst_fmt_name(mode, color);
-    return hdmitx21_validate_mode(hdev, para);
+	if (find_brr_mode(mode, input, brr_mode))
+		mode = &brr_mode[0];
+	para = hdmitx21_tst_fmt_name(mode, color);
+	return hdmitx21_validate_mode(hdev, para);
 #endif
 }
 
