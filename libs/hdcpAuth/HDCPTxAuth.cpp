@@ -188,7 +188,7 @@ void* HDCPTxAuth::authThread(void* data) {
             // only have HDCP 1.4 key
             (!strcmp(hdcpTxKey, "14"))
             //wait 10s tee_hdcp update key
-            || (count > 10))
+            || (count > 20))
             break;
 
         count++;
