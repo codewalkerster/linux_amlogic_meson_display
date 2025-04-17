@@ -100,6 +100,13 @@ extern "C" {
  */
 #define UBOOTENV_HDR_RESOLUTION_PRIORITY "ubootenv.var.hdr_resolution_priority"
 
+/*
+ * config default prefer 60hz
+ * "false":prefer 60hz
+ * "true":prefer 50hz
+ */
+#define UBOOTENV_PREFER_50HZ            "ubootenv.var.preferred50hz"
+
 int meson_mode_init_ubootenv();
 
 const char *meson_mode_get_ubootenv(const char * key);

@@ -328,6 +328,7 @@ static int32_t amdv_update_mode(struct meson_policy_in *input,
                     enum meson_mode_policy policy) {
     char dv_displaymode[MESON_MODE_LEN] = {0};
     int32_t ret = 0;
+    bool is_preferred_50hz = false;
 
     /*
      * check input param
@@ -336,6 +337,8 @@ static int32_t amdv_update_mode(struct meson_policy_in *input,
         SYS_LOGE("%s input or cur_outputmode or final_displaymode is null\n", __FUNCTION__);
         return ret;
     }
+
+    is_preferred_50hz = input->con_info.is_preferred_50hz;
 
     /*
      * 1. update tv support amdolby vision resolution
@@ -365,10 +368,18 @@ static int32_t amdv_update_mode(struct meson_policy_in *input,
             /* TV support amdolby vision 2160p60hz case */
             if (amdv_type == DOLBY_VISION_LL_RGB) {
                 /* amdolby vision LL RGB(rgb 10/12bit) only support 1080p60hz */
-                strcpy(final_displaymode, MODE_1080P);
+                if (is_preferred_50hz) {
+                    strcpy(final_displaymode, MODE_1080P50HZ);
+                } else {
+                    strcpy(final_displaymode, MODE_1080P);
+                }
             } else {
                 /* other amdolby visin mode,use 2160p60hz */
-                strcpy(final_displaymode, MODE_4K2K60HZ);
+                if (is_preferred_50hz) {
+                    strcpy(final_displaymode, MODE_4K2K50HZ);
+                } else {
+                    strcpy(final_displaymode, MODE_4K2K60HZ);
+                }
             }
         } else {
             /* TV support amdolby vision non 2160p60hz case */
@@ -379,13 +390,28 @@ static int32_t amdv_update_mode(struct meson_policy_in *input,
                  * TV support amdolby vision support 2160p30hz or 2160p25hz or 2160p24hz
                  * 1080p60hz prefer to 2160p30hz 2160p25hz 2160p24hz
                  */
-                strcpy(final_displaymode, MODE_1080P);
+                if (is_preferred_50hz) {
+                    strcpy(final_displaymode, MODE_1080P50HZ);
+                } else {
+                    strcpy(final_displaymode, MODE_1080P);
+                }
             } else {
                 /*
                  * TV support amdolby vision non 2160p30hz 2160p25hz 2160p24hz
                  * use tv support amdolby vision resolution
                  */
-                strcpy(final_displaymode, dv_displaymode);
+                if (is_preferred_50hz) {
+                    if (!strcmp(dv_displaymode, MODE_1080P)) {
+                        strcpy(final_displaymode, MODE_1080P50HZ);
+                    } else if (!strcmp(dv_displaymode, MODE_720P) || !strcmp(dv_displaymode, MODE_1080P24HZ) ||
+                                !strcmp(dv_displaymode, MODE_1080P25HZ) || !strcmp(dv_displaymode, MODE_1080P30HZ)) {
+                        strcpy(final_displaymode, MODE_720P50HZ);
+                    } else {
+                        strcpy(final_displaymode, dv_displaymode);
+                    }
+                } else {
+                    strcpy(final_displaymode, dv_displaymode);
+                }
             }
         }
     } else {
@@ -482,15 +508,22 @@ static bool is_support_4kHDR(struct meson_policy_in *input,
      * modes_ptr:the list of TV support resolution from connector
      * dc_cap:the list of TV support color format from driver parse edid
      */
+
+    const char **resolution_list = NULL;
+    int resolution_list_length   = 0;
+    /*
+     * use 4k hdr resolution table
+     */
+    if (input->con_info.is_preferred_50hz) {
+        resolution_list = MODE_4K_LIST_50HZ;
+        resolution_list_length = ARRAY_SIZE(MODE_4K_LIST_50HZ);
+    } else {
+        resolution_list = MODE_4K_LIST;
+        resolution_list_length = ARRAY_SIZE(MODE_4K_LIST);
+    }
+
     for (int i = 0; i < color_list_length; i++) {
         if (is_support_color_format(input, color_list[i])) {
-            const char **resolution_list = NULL;
-            int resolution_list_length   = 0;
-            /*
-             * use 4k hdr resolution table
-             */
-            resolution_list = MODE_4K_LIST;
-            resolution_list_length = ARRAY_SIZE(MODE_4K_LIST);
             for (int j = 0; j < resolution_list_length; j++) {
                 if (is_support_hdmimode(input, resolution_list[j])) {
                     if (mode_support_check(resolution_list[j], color_list[i], input)) {
@@ -535,15 +568,22 @@ static bool is_support_non4kHDR(struct meson_policy_in *input,
      * modes_ptr:the list of TV support resolution from connector
      * dc_cap:the list of TV support color format from driver parse edid
      */
+
+    const char **resolution_list = NULL;
+    int resolution_list_length = 0;
+    /*
+     * use non 4k hdr resolution table
+     */
+    if (input->con_info.is_preferred_50hz) {
+        resolution_list = MODE_NON4K_LIST_50HZ;
+        resolution_list_length = ARRAY_SIZE(MODE_NON4K_LIST_50HZ);
+    } else {
+        resolution_list = MODE_NON4K_LIST;
+        resolution_list_length = ARRAY_SIZE(MODE_NON4K_LIST);
+    }
+
     for (int i = 0; i < color_list_length; i++) {
         if (is_support_color_format(input, color_list[i])) {
-            const char **resolution_list = NULL;
-            int resolution_list_length = 0;
-            /*
-             * use non 4k hdr resolution table
-             */
-            resolution_list = MODE_NON4K_LIST;
-            resolution_list_length = ARRAY_SIZE(MODE_NON4K_LIST);
             for (int j = 0; j < resolution_list_length; j++) {
                 if (is_support_hdmimode(input, resolution_list[j])) {
                     if (mode_support_check(resolution_list[j], color_list[i], input)) {
@@ -760,8 +800,13 @@ static bool hdr_scene_process(struct meson_policy_in *input,
             int resolution_list_length   = 0;
             bool first = false;
 
-            resolution_list        = MODE_RESOLUTION_FIRST;
-            resolution_list_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST);
+            if (input->con_info.is_preferred_50hz) {
+                resolution_list        = MODE_RESOLUTION_FIRST_50HZ;
+                resolution_list_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST_50HZ);
+            } else {
+                resolution_list        = MODE_RESOLUTION_FIRST;
+                resolution_list_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST);
+            }
 
             for (int j = resolution_list_length - 1; j >= 0 ; j--) {
                 char color_attribute[MESON_MODE_LEN] = { 0 };
@@ -795,12 +840,22 @@ static bool hdr_scene_process(struct meson_policy_in *input,
             /*
              * choose base table
              */
-            if (policy == MESON_POLICY_FRAMERATE) {
-                resolution_list        = MODE_FRAMERATE_FIRST;
-                resolution_list_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST);
-            } else if (policy == MESON_POLICY_RESOLUTION) {
-                resolution_list        = MODE_RESOLUTION_FIRST;
-                resolution_list_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST);
+            if (input->con_info.is_preferred_50hz) {
+                if (policy == MESON_POLICY_FRAMERATE) {
+                    resolution_list        = MODE_FRAMERATE_FIRST_50HZ;
+                    resolution_list_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST_50HZ);
+                } else if (policy == MESON_POLICY_RESOLUTION) {
+                    resolution_list        = MODE_RESOLUTION_FIRST_50HZ;
+                    resolution_list_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST_50HZ);
+                }
+            } else {
+                if (policy == MESON_POLICY_FRAMERATE) {
+                    resolution_list        = MODE_FRAMERATE_FIRST;
+                    resolution_list_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST);
+                } else if (policy == MESON_POLICY_RESOLUTION) {
+                    resolution_list        = MODE_RESOLUTION_FIRST;
+                    resolution_list_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST);
+                }
             }
 
             /*
@@ -940,6 +995,12 @@ static void get_highest_mode_by_policy(struct meson_policy_in *input,
     int resolution_list_length   = 0;
     int i =0;
 
+    const char **tmp_framerate_list = MODE_FRAMERATE_FIRST;
+    int tmp_framerate_list_length   = ARRAY_SIZE(MODE_FRAMERATE_FIRST);
+
+    const char **tmp_resolution_list = MODE_RESOLUTION_FIRST;
+    int tmp_resolution_list_length   = ARRAY_SIZE(MODE_RESOLUTION_FIRST);
+
     /*
      * check input param
      */
@@ -949,25 +1010,35 @@ static void get_highest_mode_by_policy(struct meson_policy_in *input,
     }
 
     /*
+     * check prefer 50hz
+     */
+    if (input->con_info.is_preferred_50hz) {
+        tmp_framerate_list = MODE_FRAMERATE_FIRST_50HZ;
+        tmp_framerate_list_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST_50HZ);
+        tmp_resolution_list = MODE_RESOLUTION_FIRST_50HZ;
+        tmp_resolution_list_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST_50HZ);
+    }
+
+    /*
      * choose base table
      */
     if (policy == MESON_POLICY_BEST) {
         if (input->con_info.isframeratepriority) {
-            resolution_list        = MODE_FRAMERATE_FIRST;
-            resolution_list_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST);
+            resolution_list        = tmp_framerate_list;
+            resolution_list_length = tmp_framerate_list_length;
         } else {
-            resolution_list        = MODE_RESOLUTION_FIRST;
-            resolution_list_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST);
+            resolution_list        = tmp_resolution_list;
+            resolution_list_length = tmp_resolution_list_length;
         }
     } else  if (policy == MESON_POLICY_FRAMERATE) {
-        resolution_list        = MODE_FRAMERATE_FIRST;
-        resolution_list_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST);
+        resolution_list        = tmp_framerate_list;
+        resolution_list_length = tmp_framerate_list_length;
     } else if (policy == MESON_POLICY_RESOLUTION) {
-        resolution_list        = MODE_RESOLUTION_FIRST;
-        resolution_list_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST);
+        resolution_list        = tmp_resolution_list;
+        resolution_list_length = tmp_resolution_list_length;
     } else {
-        resolution_list        = MODE_FRAMERATE_FIRST;
-        resolution_list_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST);
+        resolution_list        = tmp_framerate_list;
+        resolution_list_length = tmp_framerate_list_length;
     }
 
     /*
