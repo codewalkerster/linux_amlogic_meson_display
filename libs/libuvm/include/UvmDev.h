@@ -33,6 +33,8 @@ enum uvm_hook_mod_type {
     PROCESS_AIFACE,
     PROCESS_AICOLOR,
     PROCESS_HWC,
+    PROCESS_DRM,
+    PROCESS_AISUBTITLE,
     PROCESS_INVALID,
 };
 
