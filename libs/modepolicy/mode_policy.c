@@ -938,6 +938,7 @@ static void get_highest_mode_by_policy(struct meson_policy_in *input,
                                         char *mode, enum meson_mode_policy policy) {
     const char **resolution_list = NULL;
     int resolution_list_length   = 0;
+    int i =0;
 
     /*
      * check input param
@@ -972,13 +973,15 @@ static void get_highest_mode_by_policy(struct meson_policy_in *input,
     /*
      * find preferred mode
      */
-    for (int i = resolution_list_length - 1; i >= 0 ; i--) {
+    for (i = resolution_list_length - 1; i >= 0 ; i--) {
         if (is_support_hdmimode(input, resolution_list[i])) {
             strcpy(mode, resolution_list[i]);
             SYS_LOGI("%s preferred mode:[%s]\n", __FUNCTION__, mode);
             break;
         }
     }
+    if (i < 0)
+        strcpy(mode, input->cur_displaymode);
 }
 
 static void get_hdmi_outputmode(struct meson_policy_in *input,

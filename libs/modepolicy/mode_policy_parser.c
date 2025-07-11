@@ -100,6 +100,11 @@ bool is_support_hdmimode(struct meson_policy_in *input, const char* mode) {
         return false;
     }
 
+    if (!strcmp(mode, "INVALID")) {
+        SYS_LOGE("%s mode is invalid\n", __FUNCTION__);
+        return false;
+    }
+
     /*
      * check current resolution support or not base connector mode list
      */
